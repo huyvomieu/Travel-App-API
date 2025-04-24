@@ -5,7 +5,7 @@ var serviceAccount = {
   "type": "service_account",
   "project_id": "travel-app-437bb",
   "private_key_id": process.env.FB_API_KEY,
-  "private_key": process.env.FB_PRIVATE_KEY,
+  "private_key": process.env.FB_PRIVATE_KEY.replace(/\\n/g, '\n'),
   "client_email": "firebase-adminsdk-fbsvc@travel-app-437bb.iam.gserviceaccount.com",
   "client_id": "115118472550133979069",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
