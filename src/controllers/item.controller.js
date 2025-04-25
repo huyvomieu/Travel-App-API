@@ -16,7 +16,7 @@ class ItemController {
           res.json(item);
         });
       } else {
-        itemsRef.once("value", (snapshot) => {
+        itemsRef.orderByChild('deleted').equalTo(false).once("value", (snapshot) => {
           const items = snapshot.val();
           let result = ObjectToArray(items);
 
@@ -70,7 +70,9 @@ class ItemController {
     try {
       const id = req.query.id;
 
-      await itemsRef.child(id).remove();
+      await itemsRef.child(id).update({
+        deleted: true
+      });
 
       res.status(200).json({ message: "item deleted successfully" });
     } catch (error) {
