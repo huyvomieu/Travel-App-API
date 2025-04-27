@@ -9,7 +9,20 @@ class ItemController {
   // [GET] api/item
   async get(req, res) {
     try {
-      if (req.query.id) {
+      if(req.query.c) {
+        const c_number = Number(req.query.c);
+        // Ép kiểu sang Number trước khi lọc theo category
+        if(c_number) {
+          var itemByCategory = await itemsRef.orderByChild('categoryId').equalTo(c_number).once('value');
+        } else {
+          // Nếu không ép được sẽ lấy all bản ghi
+          var itemByCategory = await itemsRef.once('value');
+        }
+        let result = itemByCategory.val();
+        result = ObjectToArray(result);
+        res.json(result);
+      }
+      else if (req.query.id) {
         itemsRef.child(req.query.id).once("value", (snapshot) => {
           const item = snapshot.val();
           item.key = req.query.id;
