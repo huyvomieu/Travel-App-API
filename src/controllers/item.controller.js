@@ -48,18 +48,19 @@ class ItemController {
   // [POST] api/item
   async post(req, res) {
     try {
-      console.log(req.body);
-      const snapshot = await itemsRef.once("value"); // Trả về một Promise nếu không truyền dạng callback
+      // Lấy ra opbj cuổi cùng
+      const snapshot = await itemsRef.orderByKey().limitToLast(1).once("value"); 
       // // Tạo Id mới tiếp theo
-      const count = snapshot.numChildren();
-      const key = count+1;
-      req.body.itemsId = key;
+      const lastObj = snapshot.val();
+      const lastKey = Object.keys(lastObj)[0];
+      const nextKey = Number.parseInt(lastKey) +1;
+      req.body.itemsId = nextKey;
       const { error, value } = ItemModel.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
       }
       
-      await itemsRef.child(key).set(value)
+      await itemsRef.child(nextKey).set(value)
 
       res.status(201).json({ id: itemsRef.key, ...value });
     } catch (error) {
