@@ -1,7 +1,5 @@
 const { db } = require("../config/firebase");
 const orderRef = db.ref("Order");
-const itemRef = db.ref("Item");
-const userRef = db.ref("users");
 
 const ObjectToArray = require("../helper/ObjectToArrray");
 const search = require("../helper/search");
