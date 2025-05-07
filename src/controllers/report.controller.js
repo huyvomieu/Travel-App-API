@@ -103,6 +103,47 @@ class ReportController {
       res.status(500).json({ error: error.message });
     }
   }
+
+    // [GET] api/report/booking-by-month
+    async bookingByMonth(req, res) {
+      try {
+        const {y, m} = req.query
+        const snapshot = await orderRef.once('value')
+        const orders = snapshot.val()
+  
+  
+        let result = []
+        
+        for(let i = 1; i <= 12; i++) {
+          result.push({key: i, bookings: 0})
+        }
+        for (const id in orders) {
+          const order = orders[id]
+  
+          // if(order.status === 'completed') {
+  
+          // }
+          const orderCreated = reports.parseDateString(order.date);
+          const orderYear = orderCreated.getFullYear().toString();
+          const orderMonth = (orderCreated.getMonth() + 1);
+          if(orderYear == y) {
+  
+            result.map(day => {
+              if(orderMonth == day.key) {
+                day.bookings += 1
+              }
+              return day
+            })
+          }
+        }
+  
+        res.json({success: true, data: result})
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+
+
   // [GET] api/report/topTours
   async topTours(req, res) {
     try {
