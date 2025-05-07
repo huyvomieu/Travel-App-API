@@ -1,12 +1,13 @@
 const { db } = require("../config/firebase");
-const orderRef = db.ref("Order");
+const adminRef = db.ref("Admin");
+const jwt = require('jsonwebtoken');
 
-const ObjectToArray = require("../helper/ObjectToArrray");
-const search = require("../helper/search");
+require('dotenv').config()
 
-const orderService = require('../services/order.service')
-class OrderController {
-  // [GET] api/order
+const JWT_SECRET = process.env.JWT_SECRET;
+
+class AuthController {
+  // [GET] api/auth
   async get(req, res) {
     try {
       if (req.query.u) {
@@ -39,7 +40,7 @@ class OrderController {
       res.status(500).json({ error: error.message });
     }
   }
-  // [GET] api/order/:id
+  // [GET] api/auth/:id
   async getById(req, res) {
     try {
       const snapshot = await orderRef.child(req.params.id).once("value");
@@ -53,52 +54,43 @@ class OrderController {
       res.status(500).json({ error: error.message });
     }
   }
-  // [POST] api/order
-  async post(req, res) {
+  // [POST] api/auth/login
+  async login(req, res) {
     try {
-      const snapshot = await orderRef.once("value"); // Trả về một Promise nếu không truyền dạng callback
-      // // Tạo Id mới tiếp theo
-      const count = snapshot.numChildren();
-      const key = count+1;
-      req.body.ordersId = key;
-      const { error, value } = orderModel.validate(req.body);
-      if (error) {
-        return res.status(400).json({ error: error.details[0].message });
+      const {email , password} = req.body
+
+      const snapshot = await adminRef.orderByChild('email').equalTo(email).once('value');
+      const accountObj =  snapshot.val();
+      const key = Object.keys(accountObj)[0]
+      const account = accountObj[key]
+      if(!account) {
+        return res.status(401).json({message: "Email hoặc mật khẩu không hợp lệ"})
+
+      }
+      if(account.password !== password) {
+        return res.status(401).json({message: "Mật khẩu không đúng"})
       }
       
-      await orderRef.child(key).set(value)
+      const token = jwt.sign({id: key,email: account.email, fullname: account.fullname }, JWT_SECRET, { expiresIn: '7d' });
 
-      res.status(201).json({ id: orderRef.key, ...value });
+
+      res.status(200).json({ message: 'Login successfully', token: token});
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   }
-  // [PUT] api/order
-  async put(req, res) {
+  // [POST] api/auth/register
+  async register(req, res) {
     try {
-      const id = req.query.id;
 
-      await orderRef.child(id).update(req.body);
-
-      res.status(200).json({ message: "order updated successfully" });
+      await adminRef.push(req.body);
+      res.status(201).json({ message: "Created"  });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   }
-  // [DELETE] api/order
-  async delete(req, res) {
-    try {
-      const id = req.query.id;
 
-      await orderRef.child(id).update({
-        deleted: true
-      });
 
-      res.status(200).json({ message: "order deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
 }
 
-module.exports = new OrderController();
+module.exports = new AuthController();

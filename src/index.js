@@ -12,6 +12,9 @@ const app = express()
 app.use(cors());
 app.use(bodyParser.json());
 
+app.get('/' , (req,res) => {
+  res.send('Welcome to Travel App API , Build by Huy Ng')
+})
 // Routing
 routes(app)
 
