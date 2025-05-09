@@ -16,12 +16,12 @@ module.exports = (req, res, next) => {
     }
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (err) {
-        return res.status(401).json("Token không hợp lệ!");
+        res.status(401).json("Token không hợp lệ!");
+        return;
       } else {
         req.user = decoded;
+        next();
       }
     });
   }
-
-  next();
 };
