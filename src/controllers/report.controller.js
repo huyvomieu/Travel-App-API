@@ -32,7 +32,6 @@ class ReportController {
 
       // Lọc order 7 ngày trước đến hiện tại
       const totalOrders7DaysAgo = reports.totalOrders7DaysAgo(result)
-      console.log(totalOrders7DaysAgo);
       
       const totalOrders14DaysAgo = reports.totalOrders14DaysAgo(result)
       response.data.revenue.total = totalOrders7DaysAgo.total

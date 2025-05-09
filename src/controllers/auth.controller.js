@@ -71,7 +71,7 @@ class AuthController {
         return res.status(401).json({message: "Mật khẩu không đúng"})
       }
       
-      const token = jwt.sign({id: key,email: account.email, fullname: account.fullname }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({id: key,email: account.email, fullname: account.fullname }, JWT_SECRET, { expiresIn: '100d' });
 
 
       res.status(200).json({ message: 'Login successfully', token: token});
