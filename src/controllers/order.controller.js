@@ -48,6 +48,8 @@ class OrderController {
 
         // Lấy thêm UserInfo và itemInfo cho đơn hàng
         const result = await orderService.getInfoByOrder(order)
+        result.total = parseInt(order.total.replaceAll('.', ''))
+        
         res.json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });
