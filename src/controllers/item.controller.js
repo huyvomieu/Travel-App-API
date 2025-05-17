@@ -25,6 +25,9 @@ class ItemController {
       else if (req.query.id) {
         itemsRef.child(req.query.id).once("value", (snapshot) => {
           const item = snapshot.val();
+          if(!item) {
+            return res.status(400).json({message: 'Không tìm thấy tour'})
+          }
           item.key = req.query.id;
           res.json(item);
         });
