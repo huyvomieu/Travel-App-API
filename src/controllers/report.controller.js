@@ -2,6 +2,7 @@ const { db } = require("../config/firebase");
 const orderRef = db.ref("Order");
 const usersRef = db.ref("users");
 const reviewsRef = db.ref("Review");
+const itemsRef = db.ref("Item");
 
 const ObjectToArray = require("../helper/ObjectToArrray");
 const { getItemByReview } = require("../services/report.service");
@@ -185,6 +186,41 @@ class ReportController {
       const data = result.sort((a,b) => a.count < b.count ? 1 : -1)
 
       res.status(200).json({success: true, data});
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+   // [GET] api/report/dashboard
+  async dashboard(req, res) {
+    try {
+      const data = {}
+    
+      const snapshot = await orderRef.once("value");
+      const order = snapshot.val();
+      const result = ObjectToArray(order);
+
+      // Lọc order 7 ngày trước đến hiện tại
+      const totalOrdersToday = reports.totalOrdersToday(result);
+      data.revenue = totalOrdersToday.total;
+      data.bookings = totalOrdersToday.count;
+
+      const snapshotTour = await itemsRef.once("value");
+      const tours = snapshotTour.val();
+      const tourArray = ObjectToArray(tours);
+      //Lọc tours ngày hiện tại
+      const totalToursToday = reports.totalTourToday(tourArray);
+      data.tours = totalToursToday;
+
+      // Chưa xử lý được do bảng users chưa cung cấp ngày tạo
+      // const snapshotUser = await usersRef.once("value");
+      // const users = snapshotUser.val();
+      // const userArray = ObjectToArray(users);
+      // Lọc user ngày hiện tại
+      // const totalUsersToday = reports.totalUsersToday(userArray);
+      data.customers = 5;
+
+      res.json({success: true, data});
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

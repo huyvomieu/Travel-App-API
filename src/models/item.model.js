@@ -20,7 +20,8 @@ const ItemModel = Joi.object({
         tourGuidePic: Joi.string().required().allow('', null),
         categoryId: Joi.number(),
         deleted: Joi.boolean().default(false),
-        status: Joi.number().default(1)
+        status: Joi.number().default(1),
+        created: Joi.date().default(new Date().toISOString()),
 });
 
 module.exports = ItemModel;
