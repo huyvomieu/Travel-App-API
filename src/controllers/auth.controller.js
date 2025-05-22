@@ -61,14 +61,14 @@ class AuthController {
 
       const snapshot = await adminRef.orderByChild('email').equalTo(email).once('value');
       const accountObj =  snapshot.val();
+      if(!accountObj) {
+        return res.status(401).json({message: "Email không tồn tại trong hệ thống!"})
+      }
       const key = Object.keys(accountObj)[0]
       const account = accountObj[key]
-      if(!account) {
-        return res.status(401).json({message: "Email hoặc mật khẩu không hợp lệ"})
-
-      }
+      
       if(account.password !== password) {
-        return res.status(401).json({message: "Mật khẩu không đúng"})
+        return res.status(401).json({message: "Mật khẩu không chính xác"})
       }
       
       const token = jwt.sign({id: key,email: account.email, fullname: account.fullname }, JWT_SECRET, { expiresIn: '100d' });

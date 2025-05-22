@@ -5,6 +5,7 @@ const itemsRef = db.ref("Item");
 
 const ObjectToArray = require("../helper/ObjectToArrray");
 const search = require("../helper/search");
+const LIMIT_PAGE = 10;
 class ItemController {
   // [GET] api/item
   async get(req, res) {
@@ -40,8 +41,25 @@ class ItemController {
           if (req.query.q) {
             result = search.searchItem(result, req.query.q.toLowerCase().trim());
           }
+          const pagination = {}
+          if(req.query.page) {
+            const current_page = req.query.page;
+            const total_tour = result.length
+            const total_page = Math.ceil(total_tour / LIMIT_PAGE)
 
-          res.json(result);
+            if(current_page < 1 || current_page > total_page) {
+              return res.status(400).json({message: "page đầu vào không phù hợp"})
+            }
+
+            const startIndex = current_page * LIMIT_PAGE - LIMIT_PAGE;
+            const endIndex = current_page * LIMIT_PAGE
+            result = result.splice(startIndex,endIndex)
+            pagination.total_tour = total_tour
+            pagination.total_page = total_page
+            pagination.current_page = current_page
+          }
+
+          res.json({data: result, meta: {pagination}});
         });
       }
     } catch (error) {
