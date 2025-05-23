@@ -43,7 +43,7 @@ class ItemController {
           }
           const pagination = {}
           if(req.query.page) {
-            const current_page = req.query.page;
+            const current_page = Number(req.query.page);
             const total_tour = result.length
             const total_page = Math.ceil(total_tour / LIMIT_PAGE)
 
@@ -53,10 +53,14 @@ class ItemController {
 
             const startIndex = current_page * LIMIT_PAGE - LIMIT_PAGE;
             const endIndex = current_page * LIMIT_PAGE
-            result = result.splice(startIndex,endIndex)
+            
+            result = result.slice(startIndex,endIndex)
             pagination.total_tour = total_tour
             pagination.total_page = total_page
             pagination.current_page = current_page
+            pagination.count = LIMIT_PAGE
+            pagination.per_page  = result.length
+
           }
 
           res.json({data: result, meta: {pagination}});
