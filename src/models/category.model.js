@@ -5,7 +5,7 @@ const CategoryModel = Joi.object({
   Id: Joi.any().allow('', null),
   ImagePath: Joi.string(),
   Name: Joi.string().min(1).max(50).required(),
-  Description: Joi.string().max(1000),
+  Description: Joi.string().max(1000).allow('', null),
   deleted: Joi.boolean().default(false),
   status: Joi.number().default(1)
 });
