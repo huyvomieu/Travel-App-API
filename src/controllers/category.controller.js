@@ -1,6 +1,6 @@
 const { db } = require("../config/firebase");
 const categorysRef = db.ref("Category");
-
+const itemModel = require('../models/category.model')
 const ObjectToArray = require("../helper/ObjectToArrray");
 const pickProperties = require("../helper/pickProperties");
 const search = require("../helper/search");
@@ -11,10 +11,15 @@ class CategoryController {
       if (req.query.id) {
         categorysRef.child(req.query.id).once("value", (snapshot) => {
           const category = snapshot.val();
-          res.json(category);
+          if(category && category.deleted === false) {
+            res.json(category)
+          }
+          else {
+            res.status(404).json({message: 'Category không tồn tại hoặc đã bị xóa!'})
+          }
         });
       } else {
-        categorysRef.once("value", (snapshot) => {
+        categorysRef.orderByChild('deleted').equalTo(false).once("value", (snapshot) => {
           const Categorys = snapshot.val();
 
           // Chuyển Object Sang Array
@@ -42,13 +47,16 @@ class CategoryController {
   // [POST] api/category
   async post(req, res) {
     try {
-
+      const {value, error} = itemModel.validate(req.body);
+      if(error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
       const snapshot = await categorysRef.once("value"); // Trả về một Promise nếu không truyền dạng callback
       // Tạo Id mới tiếp theo
       const count = snapshot.numChildren();
       const key = count+1;
-      req.body.Id = key;
-      await categorysRef.child(key).set(req.body)
+      value.Id = key;
+      await categorysRef.child(key).set(value)
 
       res.status(201).json({ key: categorysRef.key, ...req.body });
     } catch (error) {
@@ -59,8 +67,11 @@ class CategoryController {
   async put(req, res) {
     try {
       const id = req.query.id;
-
-      await CategorysRef.child(id).update(req.body);
+      const {value, error} = itemModel.validate(req.body);
+      if(error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
+      await categorysRef.child(id).update(value);
 
       res.status(200).json({ message: "Category updated successfully" });
     } catch (error) {
@@ -72,7 +83,7 @@ class CategoryController {
     try {
       const id = req.query.id;
 
-      await categorysRef.child(id).remove();
+      await categorysRef.child(id).update({deleted: true});
 
       res.status(200).json({ message: "Category deleted successfully" });
     } catch (error) {
