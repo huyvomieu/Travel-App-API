@@ -82,7 +82,6 @@ class ReportController {
 
       let result = [];
       const daysInMonth = reports.getDaysInMonth(y, m);
-      console.log(daysInMonth);
 
       for (let i = 1; i <= daysInMonth; i++) {
         result.push({ key: i.toString().padStart(2, "0"), revenue: 0 });

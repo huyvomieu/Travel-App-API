@@ -39,7 +39,6 @@ module.exports.totalOrdersToday = (orders) => {
     (totalCurrent, order) => {
       const orderDateCreated = parseDateString(order.date);
       const totalNumber = Number.parseFloat(order.total.replaceAll(".", ""));
-      console.log(orderDateCreated);
       
       if ( isSameDate(orderDateCreated, now)) {
         

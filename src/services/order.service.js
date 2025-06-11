@@ -23,11 +23,15 @@ module.exports.getInfoByOrder = async (array) => {
         userRef.child(order.userName).once("value"),
         itemRef.child(order.itemId).once("value")
       ]);
-  
+      const userInfo = snapshotUser.val();
+      const tourInfo = snapshotTour.val();
+
+      let total = tourInfo.bed * tourInfo.price;
       return {
         ...order,
-        userInfo: snapshotUser.val(),
-        tourInfo: snapshotTour.val()
+        total,
+        tourInfo,
+        userInfo
       };
     });
   

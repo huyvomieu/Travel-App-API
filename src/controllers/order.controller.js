@@ -4,34 +4,65 @@ const orderRef = db.ref("Order");
 const ObjectToArray = require("../helper/ObjectToArrray");
 const search = require("../helper/search");
 
-const orderService = require('../services/order.service')
+const orderService = require("../services/order.service");
 class OrderController {
   // [GET] api/order
   async get(req, res) {
     try {
+      // lọc theo username
       if (req.query.u) {
-        const snapshot = await orderRef.orderByChild('userName').equalTo(req.query.u).once("value");
-        
+        const snapshot = await orderRef
+          .orderByChild("userName")
+          .equalTo(req.query.u)
+          .once("value");
+
         const order = snapshot.val();
         // Chuyển object =>> array
-        let result = ObjectToArray(order)
+        let result = ObjectToArray(order);
         // Lấy thêm UserInfo và itemInfo cho đơn hàng
-        result = await orderService.getInfoByOrder(result)
+        result = await orderService.getInfoByOrder(result);
         res.json(result);
-        
       } else {
         orderRef.once("value", async (snapshot) => {
           const orders = snapshot.val();
           let result = ObjectToArray(orders);
-        // Lấy thêm UserInfo và itemInfo cho đơn hàng
-
-          result = await orderService.getInfoByOrder(result)
+          // Lấy thêm UserInfo và itemInfo cho đơn hàng
+          result = await orderService.getInfoByOrder(result);
           // Lọc theo từ khóa
           if (req.query.q) {
-            result = search.searchorder(result, req.query.q.toLowerCase().trim());
+            result = search.searchorder(
+              result,
+              req.query.q.toLowerCase().trim()
+            );
           }
-
-          result = result.reverse()
+          if (req.query.filter) {
+            switch (req.query.filter) {
+              case "newest":
+                result = result.reverse();
+                break;
+              case "oldest": // Mặc định là cũ nhất
+                break;
+              case "highest": // Sắp xếp đơn hàng giảm dần theo giá
+                result = result.sort((a, b) => {
+                  a = a.total;
+                  b = b.total;
+                  return b - a;
+                });
+                break;
+              case "lowest": // Sắp xếp đơn hàng tăng dần theo giá
+                result = result.sort((a, b) => {
+                  a = a.total;
+                  b = b.total;
+                  return a - b;
+                });
+                break;
+              default:
+                console.log("Bộ lọc không hợp lệ!");
+                break;
+            }
+          } else {
+            result = result.reverse();
+          }
           res.json(result);
         });
       }
@@ -43,14 +74,14 @@ class OrderController {
   async getById(req, res) {
     try {
       const snapshot = await orderRef.child(req.params.id).once("value");
-        
-        const order = snapshot.val();
 
-        // Lấy thêm UserInfo và itemInfo cho đơn hàng
-        const result = await orderService.getInfoByOrder(order)
-        result.total = parseInt(order.total.replaceAll('.', ''))
-        
-        res.json(result);
+      const order = snapshot.val();
+
+      // Lấy thêm UserInfo và itemInfo cho đơn hàng
+      const result = await orderService.getInfoByOrder(order);
+      result.total = parseInt(order.total.replaceAll(".", ""));
+
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -61,14 +92,14 @@ class OrderController {
       const snapshot = await orderRef.once("value"); // Trả về một Promise nếu không truyền dạng callback
       // // Tạo Id mới tiếp theo
       const count = snapshot.numChildren();
-      const key = count+1;
+      const key = count + 1;
       req.body.ordersId = key;
       const { error, value } = orderModel.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
       }
-      
-      await orderRef.child(key).set(value)
+
+      await orderRef.child(key).set(value);
 
       res.status(201).json({ id: orderRef.key, ...value });
     } catch (error) {
@@ -93,7 +124,7 @@ class OrderController {
       const id = req.query.id;
 
       await orderRef.child(id).update({
-        deleted: true
+        deleted: true,
       });
 
       res.status(200).json({ message: "order deleted successfully" });
