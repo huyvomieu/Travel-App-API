@@ -2,7 +2,7 @@ const sendEmail = require('../services/nodemail.service')
 
 class OtpController {
 
-  // [POST] api/otp/sendEmail
+  // [POST] api/otp/send-email
   async sendEmail(req, res) {
     try {
       const {to, subject, content } = req.body;
