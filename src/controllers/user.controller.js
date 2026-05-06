@@ -1,107 +1,183 @@
-const UserModel = require("../models/user.model");
+const { UserCreateModel, UserUpdateModel } = require("../models/user.model");
 const { db } = require("../config/firebase");
+
 const usersRef = db.ref("users");
 
 const ObjectToArray = require("../helper/ObjectToArrray");
 const pickProperties = require("../helper/pickProperties");
 const search = require("../helper/search");
+
+const normalizeUser = (user, key) => {
+  if (!user) return null;
+
+  const userKey = key || user.key || user.username || user.id;
+  return {
+    ...user,
+    key: userKey,
+    id: userKey,
+    username: user.username || userKey,
+  };
+};
+
+const getParamArray = (req, name) => {
+  const raw = req.query[name] ?? req.query[`${name}[]`];
+  if (!raw) return [];
+
+  const values = Array.isArray(raw) ? raw : String(raw).split(",");
+  return values.map((value) => String(value).trim()).filter(Boolean);
+};
+
+const getRequestedTypes = (req) => {
+  const types = getParamArray(req, "type");
+  if (!types.length) return [];
+
+  const requiredKeys = ["key", "id", "username"];
+  requiredKeys.forEach((key) => {
+    if (!types.includes(key)) types.push(key);
+  });
+
+  return types;
+};
+
+const getUserKey = (req) => req.params.id || req.query.id || req.query.username;
+
 class UserController {
   // [GET] api/user
   async get(req, res) {
     try {
-      if (req.query.id) {
-        db.ref(`users/${req.query.id}`).once("value", (snapshot) => {
-          const user = snapshot.val();
-          res.json(user);
-        });
-      } else {
-        usersRef.once("value", (snapshot) => {
-          const users = snapshot.val();
+      const key = getUserKey(req);
+      if (key) {
+        const snapshot = await usersRef.child(key).once("value");
+        const user = normalizeUser(snapshot.val(), key);
 
-          let result = ObjectToArray(users);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
-          // Lọc theo từ khóa
-          if (req.query.q) {
-            result = search.searchUser(result, req.query.q.toLowerCase());
-          }
-
-          // Lọc theo từ typeUser
-          if (req.query.typeuser) {
-            result = search.searchByTypeUser(result, req.query.typeuser);
-          }
-
-          // Lọc Properties theo type
-          if (req.query.type) {
-            let types = req.query.type
-            if(!types.includes('key')) {
-              types.push('key')
-            }
-            result = result.map((user) => {
-              return pickProperties(user, types);
-            });
-          }
-
-          res.json(result);
-        });
+        return res.json(user);
       }
+
+      const snapshot = await usersRef.once("value");
+      let result = ObjectToArray(snapshot.val()).map((user) =>
+        normalizeUser(user, user.key)
+      );
+
+      if (req.query.q) {
+        result = search.searchUser(result, req.query.q.toLowerCase().trim());
+      }
+
+      if (req.query.typeuser) {
+        result = search.searchByTypeUser(result, req.query.typeuser);
+      }
+
+      const types = getRequestedTypes(req);
+      if (types.length) {
+        result = result.map((user) => pickProperties(user, types));
+      }
+
+      return res.json(result);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   }
+
   // [POST] api/user
   async post(req, res) {
     try {
-      const { error, value } = UserModel.validate(req.body);
+      const { error, value } = UserCreateModel.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
       }
-
-      // Kiểm tra username đã tồn tại chưa
 
       const username = value.username;
       const userRef = usersRef.child(username);
       const snapshot = await userRef.once("value");
       if (snapshot.exists()) {
-        return res.status(400).json({ error: "Username already exists" });
+        return res.status(409).json({ error: "Username already exists" });
       }
 
-      await userRef.set(value);
-      res.status(201).json({ id: userRef.key, ...req.body });
+      const user = {
+        ...value,
+        cartId: value.cartId || username,
+      };
+
+      delete user.id;
+      delete user.key;
+
+      await userRef.set(user);
+
+      return res.status(201).json(normalizeUser(user, username));
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   }
+
   // [PUT] api/user
   async put(req, res) {
     try {
-      const { error, value } = UserModel.validate(req.body);
+      const key = getUserKey(req);
+      if (!key) {
+        return res.status(400).json({ error: "Missing user id" });
+      }
+
+      const snapshot = await usersRef.child(key).once("value");
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { error, value } = UserUpdateModel.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
       }
-      const username = req.query.username;
 
-      await usersRef.child(username).update(value);
+      if (value.username && value.username !== key) {
+        return res.status(400).json({ error: "Username cannot be changed" });
+      }
 
-      res.status(200).json({ message: "User updated successfully" });
+      const updateData = {
+        ...value,
+        username: key,
+        cartId: value.cartId || key,
+      };
+
+      delete updateData.id;
+      delete updateData.key;
+
+      await usersRef.child(key).update(updateData);
+
+      const updatedSnapshot = await usersRef.child(key).once("value");
+      return res.status(200).json(normalizeUser(updatedSnapshot.val(), key));
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   }
+
   // [DELETE] api/user
   async delete(req, res) {
     try {
-      const ids = req.query.ids;
+      const ids = [
+        ...getParamArray(req, "ids"),
+        ...getParamArray(req, "id"),
+      ];
+
+      if (!ids.length) {
+        return res.status(400).json({ error: "Missing user ids" });
+      }
+
       const paths = {};
       ids.forEach((id) => {
         paths[id] = null;
       });
 
-      // Remove all ids in array
       await usersRef.update(paths);
-      // await usersRef.child(id).remove();
-      res.status(200).json({ message: "User deleted successfully", code: 200 });
+
+      return res.status(200).json({
+        message: "User deleted successfully",
+        code: 200,
+        deletedIds: ids,
+      });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   }
 }
