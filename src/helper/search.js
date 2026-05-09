@@ -23,3 +23,13 @@ module.exports.searchByTypeUser = (arr, q) =>
   arr.filter((item) => {
     return item?.[q];
   });
+
+module.exports.searchorder = (arr, q) =>
+  arr.filter((item) => {
+    return (
+      item?.orderId?.toLowerCase().includes(q) ||
+      item?.userInfo?.name?.toLowerCase().includes(q) ||
+      item?.userInfo?.email?.toLowerCase().includes(q) ||
+      item?.tourInfo?.title?.toLowerCase().includes(q)
+    );
+  });
