@@ -21,6 +21,20 @@ class ItemController {
         }
         let result = itemByCategory.val();
         result = ObjectToArray(result);
+
+        // Lấy ngày hiện tại (chỉ phần date, không tính giờ)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Chỉ lấy tour: chưa xóa + đang hiển thị + ngày tour >= hôm nay
+        result = result.filter((item) => {
+          if (item.deleted !== false) return false;
+          if (item.status !== 1) return false;
+          const tourDate = new Date(item.dateTour);
+          tourDate.setHours(0, 0, 0, 0);
+          return tourDate >= today;
+        });
+
         res.json(result);
       }
       else if (req.query.id) {
